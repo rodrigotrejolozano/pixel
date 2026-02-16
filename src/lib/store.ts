@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 
 export type Tool = "pencil" | "eraser" | "fill" | "eyedropper";
 export type CanvasSize = 8 | 16 | 32;
@@ -48,172 +47,147 @@ const createEmptyGrid = (size: CanvasSize): string[][] => {
 const gridToString = (grid: string[][]): string => JSON.stringify(grid);
 const stringToGrid = (str: string): string[][] => JSON.parse(str);
 
-export const usePixelArtStore = create<PixelArtState>()(
-  persist(
-    (set, get) => ({
-      canvasSize: 16,
-      pixelGrid: createEmptyGrid(16),
-      activeTool: "pencil",
-      selectedColor: "#000000",
-      recentColors: ["#000000", "#ffffff"],
-      history: [gridToString(createEmptyGrid(16))],
+export const usePixelArtStore = create<PixelArtState>()((set, get) => ({
+  canvasSize: 16,
+  pixelGrid: createEmptyGrid(16),
+  activeTool: "pencil",
+  selectedColor: "#000000",
+  recentColors: ["#000000", "#ffffff"],
+  history: [gridToString(createEmptyGrid(16))],
+  historyIndex: 0,
+  showGrid: true,
+  zoom: 20,
+
+  setCanvasSize: (size: CanvasSize) => {
+    const newGrid = createEmptyGrid(size);
+    set({
+      canvasSize: size,
+      pixelGrid: newGrid,
+      history: [gridToString(newGrid)],
       historyIndex: 0,
-      showGrid: true,
-      zoom: 20,
+    });
+  },
 
-      setCanvasSize: (size: CanvasSize) => {
-        const newGrid = createEmptyGrid(size);
-        set({
-          canvasSize: size,
-          pixelGrid: newGrid,
-          history: [gridToString(newGrid)],
-          historyIndex: 0,
-        });
-      },
+  setActiveTool: (tool: Tool) => set({ activeTool: tool }),
 
-      setActiveTool: (tool: Tool) => set({ activeTool: tool }),
+  // Color selection
+  setSelectedColor: (color: string) => set({ selectedColor: color }),
 
-      // Color selection
-      setSelectedColor: (color: string) => set({ selectedColor: color }),
+  addRecentColor: (color: string) => {
+    const { recentColors } = get();
+    const filtered = recentColors.filter((c) => c !== color);
+    const updated = [color, ...filtered].slice(0, 12);
+    set({ recentColors: updated });
+  },
 
-      addRecentColor: (color: string) => {
-        const { recentColors } = get();
-        const filtered = recentColors.filter((c) => c !== color);
-        const updated = [color, ...filtered].slice(0, 12);
-        set({ recentColors: updated });
-      },
+  paintPixel: (x: number, y: number, color: string, saveToHistory = true) => {
+    const { pixelGrid, history, historyIndex } = get();
+    const newGrid = pixelGrid.map((row) => [...row]);
+    newGrid[y][x] = color;
 
-      paintPixel: (
-        x: number,
-        y: number,
-        color: string,
-        saveToHistory = true,
-      ) => {
-        const { pixelGrid, history, historyIndex } = get();
-        const newGrid = pixelGrid.map((row) => [...row]);
-        newGrid[y][x] = color;
+    if (saveToHistory) {
+      const newHistory = history.slice(0, historyIndex + 1);
+      newHistory.push(gridToString(newGrid));
+      set({
+        pixelGrid: newGrid,
+        history: newHistory,
+        historyIndex: newHistory.length - 1,
+      });
+    } else {
+      set({ pixelGrid: newGrid });
+    }
+  },
 
-        if (saveToHistory) {
-          const newHistory = history.slice(0, historyIndex + 1);
-          newHistory.push(gridToString(newGrid));
-          set({
-            pixelGrid: newGrid,
-            history: newHistory,
-            historyIndex: newHistory.length - 1,
-          });
-        } else {
-          set({ pixelGrid: newGrid });
-        }
-      },
+  commitHistory: () => {
+    const { pixelGrid, history, historyIndex } = get();
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(gridToString(pixelGrid));
+    set({
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
+  },
 
-      commitHistory: () => {
-        const { pixelGrid, history, historyIndex } = get();
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(gridToString(pixelGrid));
-        set({
-          history: newHistory,
-          historyIndex: newHistory.length - 1,
-        });
-      },
+  fillBucket: (x: number, y: number, newColor: string) => {
+    const { pixelGrid, history, historyIndex } = get();
+    const grid = pixelGrid.map((row) => [...row]);
+    const targetColor = grid[y][x];
 
-      fillBucket: (x: number, y: number, newColor: string) => {
-        const { pixelGrid, history, historyIndex } = get();
-        const grid = pixelGrid.map((row) => [...row]);
-        const targetColor = grid[y][x];
+    if (targetColor === newColor) return;
 
-        if (targetColor === newColor) return;
+    const fill = (px: number, py: number) => {
+      if (px < 0 || px >= grid.length || py < 0 || py >= grid.length) return;
+      if (grid[py][px] !== targetColor) return;
 
-        const fill = (px: number, py: number) => {
-          if (px < 0 || px >= grid.length || py < 0 || py >= grid.length)
-            return;
-          if (grid[py][px] !== targetColor) return;
+      grid[py][px] = newColor;
+      fill(px + 1, py);
+      fill(px - 1, py);
+      fill(px, py + 1);
+      fill(px, py - 1);
+    };
 
-          grid[py][px] = newColor;
-          fill(px + 1, py);
-          fill(px - 1, py);
-          fill(px, py + 1);
-          fill(px, py - 1);
-        };
+    fill(x, y);
 
-        fill(x, y);
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(gridToString(grid));
 
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(gridToString(grid));
+    set({
+      pixelGrid: grid,
+      history: newHistory,
+      historyIndex: newHistory.length - 1,
+    });
+  },
 
-        set({
-          pixelGrid: grid,
-          history: newHistory,
-          historyIndex: newHistory.length - 1,
-        });
-      },
+  eyedropperPixel: (x: number, y: number): string => {
+    const { pixelGrid } = get();
+    return pixelGrid[y][x];
+  },
 
-      eyedropperPixel: (x: number, y: number): string => {
-        const { pixelGrid } = get();
-        return pixelGrid[y][x];
-      },
+  undo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      set({
+        historyIndex: newIndex,
+        pixelGrid: stringToGrid(history[newIndex]),
+      });
+    }
+  },
 
-      undo: () => {
-        const { history, historyIndex } = get();
-        if (historyIndex > 0) {
-          const newIndex = historyIndex - 1;
-          set({
-            historyIndex: newIndex,
-            pixelGrid: stringToGrid(history[newIndex]),
-          });
-        }
-      },
+  redo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      set({
+        historyIndex: newIndex,
+        pixelGrid: stringToGrid(history[newIndex]),
+      });
+    }
+  },
 
-      redo: () => {
-        const { history, historyIndex } = get();
-        if (historyIndex < history.length - 1) {
-          const newIndex = historyIndex + 1;
-          set({
-            historyIndex: newIndex,
-            pixelGrid: stringToGrid(history[newIndex]),
-          });
-        }
-      },
+  reset: () => {
+    const { canvasSize } = get();
+    const newGrid = createEmptyGrid(canvasSize);
+    set({
+      pixelGrid: newGrid,
+      history: [gridToString(newGrid)],
+      historyIndex: 0,
+    });
+  },
 
-      reset: () => {
-        const { canvasSize } = get();
-        const newGrid = createEmptyGrid(canvasSize);
-        set({
-          pixelGrid: newGrid,
-          history: [gridToString(newGrid)],
-          historyIndex: 0,
-        });
-      },
+  toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
 
-      toggleGrid: () => set((state) => ({ showGrid: !state.showGrid })),
+  setZoom: (zoom: number) => set({ zoom: Math.max(5, Math.min(100, zoom)) }),
 
-      setZoom: (zoom: number) =>
-        set({ zoom: Math.max(5, Math.min(100, zoom)) }),
-
-      newProject: () => {
-        const { canvasSize } = get();
-        const newGrid = createEmptyGrid(canvasSize);
-        set({
-          pixelGrid: newGrid,
-          selectedColor: "#000000",
-          history: [gridToString(newGrid)],
-          historyIndex: 0,
-          activeTool: "pencil",
-        });
-      },
-    }),
-    {
-      name: "pixel-art-store",
-      partialize: (state) => ({
-        canvasSize: state.canvasSize,
-        pixelGrid: state.pixelGrid,
-        activeTool: state.activeTool,
-        selectedColor: state.selectedColor,
-        recentColors: state.recentColors,
-        showGrid: state.showGrid,
-        zoom: state.zoom,
-        history: state.history,
-        historyIndex: state.historyIndex,
-      }),
-    },
-  ),
-);
+  newProject: () => {
+    const { canvasSize } = get();
+    const newGrid = createEmptyGrid(canvasSize);
+    set({
+      pixelGrid: newGrid,
+      selectedColor: "#000000",
+      history: [gridToString(newGrid)],
+      historyIndex: 0,
+      activeTool: "pencil",
+    });
+  },
+}));
