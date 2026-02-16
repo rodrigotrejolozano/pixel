@@ -1,10 +1,10 @@
 import React from "react";
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export const metadata: Metadata = {
-  title: "Pixel Art Studio",
+  title: "Pixel Art By RoroDev",
   icons: {
     icon: [
       {
@@ -30,10 +30,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="es" suppressHydrationWarning>
       <body className={`font-sans antialiased`}>
-        {children}
-        <Analytics />
+        <ThemeProvider attribute="class">{children}</ThemeProvider>
       </body>
     </html>
   );
