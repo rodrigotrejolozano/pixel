@@ -22,9 +22,15 @@ export interface PixelArtState {
   setActiveTool: (tool: Tool) => void;
   setSelectedColor: (color: string) => void;
   addRecentColor: (color: string) => void;
-  paintPixel: (x: number, y: number, color: string) => void;
+  paintPixel: (
+    x: number,
+    y: number,
+    color: string,
+    saveToHistory?: boolean,
+  ) => void;
   fillBucket: (x: number, y: number, color: string) => void;
   eyedropperPixel: (x: number, y: number) => string;
+  commitHistory: () => void;
   undo: () => void;
   redo: () => void;
   reset: () => void;
@@ -77,16 +83,34 @@ export const usePixelArtStore = create<PixelArtState>()(
         set({ recentColors: updated });
       },
 
-      paintPixel: (x: number, y: number, color: string) => {
+      paintPixel: (
+        x: number,
+        y: number,
+        color: string,
+        saveToHistory = true,
+      ) => {
         const { pixelGrid, history, historyIndex } = get();
         const newGrid = pixelGrid.map((row) => [...row]);
         newGrid[y][x] = color;
 
-        const newHistory = history.slice(0, historyIndex + 1);
-        newHistory.push(gridToString(newGrid));
+        if (saveToHistory) {
+          const newHistory = history.slice(0, historyIndex + 1);
+          newHistory.push(gridToString(newGrid));
+          set({
+            pixelGrid: newGrid,
+            history: newHistory,
+            historyIndex: newHistory.length - 1,
+          });
+        } else {
+          set({ pixelGrid: newGrid });
+        }
+      },
 
+      commitHistory: () => {
+        const { pixelGrid, history, historyIndex } = get();
+        const newHistory = history.slice(0, historyIndex + 1);
+        newHistory.push(gridToString(pixelGrid));
         set({
-          pixelGrid: newGrid,
           history: newHistory,
           historyIndex: newHistory.length - 1,
         });
@@ -187,6 +211,8 @@ export const usePixelArtStore = create<PixelArtState>()(
         recentColors: state.recentColors,
         showGrid: state.showGrid,
         zoom: state.zoom,
+        history: state.history,
+        historyIndex: state.historyIndex,
       }),
     },
   ),

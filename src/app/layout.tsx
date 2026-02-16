@@ -2,25 +2,12 @@ import React from "react";
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { FAVICON_URL } from "@/config/constants";
 
 export const metadata: Metadata = {
-  title: "Pixel Art By RoroDev",
+  title: "Pixel Art | RoroDev",
   icons: {
-    icon: [
-      {
-        url: "/icon-light-32x32.png",
-        media: "(prefers-color-scheme: light)",
-      },
-      {
-        url: "/icon-dark-32x32.png",
-        media: "(prefers-color-scheme: dark)",
-      },
-      {
-        url: "/icon.svg",
-        type: "image/svg+xml",
-      },
-    ],
-    apple: "/apple-icon.png",
+    icon: FAVICON_URL,
   },
 };
 

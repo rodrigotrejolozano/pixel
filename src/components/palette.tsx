@@ -14,9 +14,11 @@ export function Palette() {
   const [copied, setCopied] = useState(false);
 
   const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const color = e.target.value;
-    setSelectedColor(color);
-    addRecentColor(color);
+    setSelectedColor(e.target.value);
+  };
+
+  const handleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    addRecentColor(e.target.value);
   };
 
   const handleRecentColorClick = (color: string) => {
@@ -39,6 +41,7 @@ export function Palette() {
               type="color"
               value={selectedColor}
               onChange={handleColorChange}
+              onBlur={handleBlur}
               className="w-16 h-12 p-1 cursor-pointer"
             />
           </div>

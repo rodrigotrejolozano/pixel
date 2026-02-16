@@ -21,6 +21,7 @@ export function PixelCanvas() {
     eyedropperPixel,
     setSelectedColor,
     addRecentColor,
+    commitHistory,
   } = usePixelArtStore();
 
   useEffect(() => {
@@ -92,9 +93,9 @@ export function PixelCanvas() {
     const { x, y } = coords;
 
     if (activeTool === "pencil") {
-      paintPixel(x, y, selectedColor);
+      paintPixel(x, y, selectedColor, false);
     } else if (activeTool === "eraser") {
-      paintPixel(x, y, "#ffffff");
+      paintPixel(x, y, "#ffffff", false);
     } else if (activeTool === "fill") {
       fillBucket(x, y, selectedColor);
     } else if (activeTool === "eyedropper") {
@@ -113,13 +114,16 @@ export function PixelCanvas() {
     const { x, y } = coords;
 
     if (activeTool === "pencil") {
-      paintPixel(x, y, selectedColor);
+      paintPixel(x, y, selectedColor, false);
     } else if (activeTool === "eraser") {
-      paintPixel(x, y, "#ffffff");
+      paintPixel(x, y, "#ffffff", false);
     }
   };
 
   const handleMouseUp = () => {
+    if (isDragging && (activeTool === "pencil" || activeTool === "eraser")) {
+      commitHistory();
+    }
     setIsDragging(false);
   };
 
@@ -132,9 +136,9 @@ export function PixelCanvas() {
     const { x, y } = coords;
 
     if (activeTool === "pencil") {
-      paintPixel(x, y, selectedColor);
+      paintPixel(x, y, selectedColor, false);
     } else if (activeTool === "eraser") {
-      paintPixel(x, y, "#ffffff");
+      paintPixel(x, y, "#ffffff", false);
     } else if (activeTool === "fill") {
       fillBucket(x, y, selectedColor);
     } else if (activeTool === "eyedropper") {
@@ -155,13 +159,16 @@ export function PixelCanvas() {
     const { x, y } = coords;
 
     if (activeTool === "pencil") {
-      paintPixel(x, y, selectedColor);
+      paintPixel(x, y, selectedColor, false);
     } else if (activeTool === "eraser") {
-      paintPixel(x, y, "#ffffff");
+      paintPixel(x, y, "#ffffff", false);
     }
   };
 
   const handleTouchEnd = () => {
+    if (isDragging && (activeTool === "pencil" || activeTool === "eraser")) {
+      commitHistory();
+    }
     setIsDragging(false);
   };
 
